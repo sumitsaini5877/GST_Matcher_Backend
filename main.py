@@ -1,63 +1,3 @@
-from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import JSONResponse
-import pandas as pd
-from io import BytesIO
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://gst-matcher.vercel.app/"],  # React dev server
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/api/hello")
-def read_root():
-    return JSONResponse({"message": "Hello from FastAPI"})
-
-# ------------- Unique Key Generator Function ----------------
-def create_unique_key(df, gstin_col, invoice_col, date_col):
-    unique_key = (df[gstin_col].str.upper().str.strip() + '-' +
-                  df[invoice_col].str.upper().str.strip() + '-' +
-                  pd.to_datetime(df[date_col], errors='coerce').dt.strftime('%d%m%y'))
-    return unique_key
-
-# ------------- Clean Header Function ----------------
-def clean_headers(df):
-    cleaned_columns = []
-    for col_tuple in df.columns:
-        main_col = str(col_tuple[0]).strip()
-        sub_col = str(col_tuple[1]).strip()
-        if "unnamed" in sub_col.lower() or sub_col.strip() == '':
-            cleaned_columns.append(main_col)
-        else:
-            cleaned_columns.append(f"{main_col} {sub_col}")
-    return [col.strip().replace('  ', ' ') for col in cleaned_columns]
-
-# ------------- Find Header Row ----------------
-def find_header_row(df, keyword='GSTIN'):
-    for idx, rows in df.iterrows():
-        if rows.astype(str).str.contains(keyword, case=False, na=False).any():
-            return idx
-    return None
-
-# ------------- Process Purchase File ----------------
-def process_purchase_file(file_bytes):
-    df_raw = pd.read_excel(BytesIO(file_bytes))
-    header_row = find_header_row(df_raw)
-    if header_row is None:
-        raise ValueError("Header row with GSTIN keyword not found")
-    df = pd.read_excel(BytesIO(file_bytes), header=[header_row+1, header_row+2])
-    df.columns = clean_headers(df)
-    return df
-   
-
-
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 import pandas as pd
@@ -68,7 +8,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React dev server
+    allow_origins=["https://gst-matcher.vercel.app/"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
