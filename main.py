@@ -56,6 +56,11 @@ def process_purchase_file(file_bytes):
 
 # --------------------- Main API ------------------------
 
+
+@app.get("/")
+def root():
+    return {"message": "GST Matcher Backend is running. Use /match-files/ to access the matching route."}
+
 @app.post("/match-files/")
 async def match_files(gst_file: UploadFile = File(...), purchase_file: UploadFile = File(...)):
     try:
